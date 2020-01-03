@@ -2,3 +2,4 @@ rubbish
 logs
 .vscode
 node_modules
+output.log
