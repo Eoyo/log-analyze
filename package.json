@@ -6,6 +6,6 @@
   },
   "scripts": {
     "work": "tsc -w",
-    "log": "node dist/log.js"
+    "start": "node dist/log.js"
   }
 }
