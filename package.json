@@ -1,7 +1,9 @@
 {
   "dependencies": {
     "@types/fs-extra": "^8.0.1",
+    "chalk": "^3.0.0",
     "fs-extra": "^8.1.0",
+    "moment": "^2.24.0",
     "nzh": "^1.0.4"
   },
   "scripts": {
