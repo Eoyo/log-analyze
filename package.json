@@ -3,7 +3,7 @@
   "bin": {
     "logz": "./dist/log.js"
   },
-  "version": "1.0.2",
+  "version": "1.0.3",
   "dependencies": {
     "@types/fs-extra": "^8.0.1",
     "chalk": "^3.0.0",
