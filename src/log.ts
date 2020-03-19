@@ -1,21 +1,17 @@
+#!/usr/bin/env node
 import fs from "fs-extra";
 import readline from "readline";
 import path from "path";
 import chalk from "chalk";
 // @ts-ignore
 import Nzh from "nzh";
+import { LogRecord } from "./interface";
+import { combineLogs } from "./methods/combine-logs";
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
-
-type LogRecord = {
-  time: string;
-  level: string;
-  message: string;
-  isMark: boolean;
-};
 
 async function readLogFileData(file: string): Promise<LogRecord[]> {
   const data = await fs.readFile(file);
@@ -48,12 +44,12 @@ async function combineLogFiles(files: string[]) {
   );
   const fileStr = await Promise.all(files.map(readLogFileData));
   return fileStr.reduce((acc, b) => {
-    return acc.concat(b);
+    return combineLogs(acc, b);
   });
 }
 
 async function readAllLogsFile() {
-  return combineLogFiles(await getFilesInDir("./logs"));
+  return combineLogFiles(await getFilesInDir(path.join(process.cwd(), "logs")));
 }
 
 function createIgnoreStrMatch(str: string) {
@@ -94,7 +90,7 @@ function logRecordStr(log: LogRecord): string {
 async function writeLogsRecord(data: LogRecord[]) {
   const messages = data.map(logRecordStr);
   await fs.writeFile(
-    "./output.log",
+    path.join(process.cwd(), "output.log"),
     `结果: ${Nzh.cn.encodeS(messages.length)} 条日志\n` + messages.join("\n")
   );
   console.log(`结果: ${Nzh.cn.encodeS(messages.length)} 条日志`);
@@ -210,7 +206,6 @@ function filterLogsRecord(
 
 async function start() {
   const data = await readAllLogsFile();
-  console.log(data[1]);
   console.log("文件解析完成");
   inputLine((inputStr) => {
     const filters = searchFilters(inputStr);
