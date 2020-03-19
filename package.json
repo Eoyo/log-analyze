@@ -11,6 +11,21 @@
     "moment": "^2.24.0",
     "nzh": "^1.0.4"
   },
+  "author": "liumiao <yoix@foxmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Eoyo/log-analyze"
+  },
+  "contributors": [
+    {
+      "name": "eoyo",
+      "email": "yoix@foxmail.com"
+    }
+  ],
+  "keywords": [
+    "log file analyze",
+    "日志分析"
+  ],
   "scripts": {
     "work": "tsc -w",
     "start": "node dist/log.js"
