@@ -1,4 +1,14 @@
 {
+  "scripts": {
+    "test": "jest",
+    "work": "tsc -w",
+    "start": "node dist/log.js"
+  },
+  "devDependencies": {
+    "@types/jest": "^25.1.4",
+    "jest": "^25.1.0",
+    "ts-jest": "^25.2.1"
+  },
   "name": "log-analyze",
   "bin": {
     "logz": "./dist/log.js"
@@ -25,9 +35,5 @@
   "keywords": [
     "log file analyze",
     "日志分析"
-  ],
-  "scripts": {
-    "work": "tsc -w",
-    "start": "node dist/log.js"
-  }
+  ]
 }
