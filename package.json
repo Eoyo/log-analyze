@@ -2,12 +2,27 @@
   "scripts": {
     "test": "jest",
     "work": "tsc -w",
-    "start": "node dist/log.js"
+    "start": "node dist/log.js",
+    "lint": "eslint --ext .js,.ts ./",
+    "lint-fix": "eslint --ext .js,.ts ./ --fix"
   },
   "devDependencies": {
     "@types/jest": "^25.1.4",
     "jest": "^25.1.0",
-    "ts-jest": "^25.2.1"
+    "ts-jest": "^25.2.1",
+    "@typescript-eslint/eslint-plugin": "^2.9.0",
+    "@typescript-eslint/parser": "^2.9.0",
+    "eslint": "^6.7.1",
+    "eslint-config-airbnb": "^18.0.1",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-config-prettier": "^6.7.0",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-jsx-a11y": "^6.2.3",
+    "eslint-plugin-prettier": "^3.1.1",
+    "eslint-plugin-react": "^7.17.0",
+    "eslint-plugin-react-hooks": "^2.5.1",
+    "prettier": "^1.19.1",
+    "typescript": "^3.7.2"
   },
   "name": "log-analyze",
   "bin": {

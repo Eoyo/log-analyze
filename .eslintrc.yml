@@ -1,0 +1,54 @@
+parser: "@typescript-eslint/parser"
+env:
+  browser: true
+  es6: true
+globals:
+  Atomics: readonly
+  SharedArrayBuffer: readonly
+parserOptions:
+  ecmaVersion: 2018
+  sourceType: module
+plugins:
+  - prettier
+  - "@typescript-eslint"
+rules:
+  semi:
+    - "error"
+    - never
+  import/prefer-default-export: "off" # 我们定义一些方法是不 export default 的，因为考虑后续扩展。如 eventChannel
+  import/no-namespace: "off" # 我们需要使用到 import * as namespace from 'xxx' 的形式，用起来方便。有 flow 来保证正确的引用
+  import/namespace: "error" # 主要是用在静态检测，避免动态引用。比如 namespace[a]，a 为变量的形式
+  import/no-unresolved: "off" # resolve 判断通过 flow 来实现，用 lint 速度会慢很多
+  import/no-extraneous-dependencies: "off" # 和 no-unresolved 类似
+  no-console: warn # 不需要兼容浏览器，node 项目使用 console 即可
+  no-undef: "off" # eslint 不支持 flow，这部分监测通过 flow 来实现即可
+  no-unsafe-finally: "off" # 我们允许在 finally 里进行资源释放
+  no-use-before-define: "off"
+  "@typescript-eslint/no-unused-vars": "warn"
+  "@typescript-eslint/no-use-before-define": "off"
+  no-plusplus:
+    - "error"
+    - allowForLoopAfterthoughts: true
+  max-len: "off"
+  import/extensions: "off"
+  no-param-reassign:
+    - "error"
+    - props: false
+  global-require: "off" # 我们需要引用 image，本身默认都使用 import，使用 require 的地方只会在图片上
+  no-unused-expressions:
+    - "error"
+    - allowShortCircuit: true # 仅支持 xx && xx()的形式
+  no-unused-vars: "off"
+  react/jsx-handler-names: "off" # 不需要强制对命名做强制约定?待定
+  react/jsx-filename-extension: [1, { "extensions": [".jsx", ".tsx"] }]
+  quiote-props: "off" # 不需要强制规定 props 是否加引号
+  class-methods-use-this: "off" # react的 生命周期回调里很有可能不需要用到 this
+  no-underscore-dangle: "off"
+  no-nested-ternary: off
+  lines-between-class-members:
+    ["error", "always", { exceptAfterSingleLine: true }]
+  prettier/prettier: "error"
+extends:
+  - airbnb
+  - prettier
+  - "prettier/@typescript-eslint"
