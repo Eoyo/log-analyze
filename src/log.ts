@@ -96,8 +96,11 @@ function filterLogsRecord({
   }
 
   if (filters.mark.hasReg) {
-    d.forEach((one) => {
-      one.isMark = filters.mark(one.message)
+    d = d.map((one) => {
+      return {
+        ...one,
+        isMark: filters.mark(one.message),
+      }
     })
   }
   return d
