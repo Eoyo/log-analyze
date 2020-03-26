@@ -3,15 +3,10 @@
     "target": "ES5",
     "module": "commonjs",
     "outDir": "./dist",
-    "rootDir": "./",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true
   },
-  "include": [
-    "src",
-    "__test__"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["src", "__test__"],
+  "exclude": ["node_modules"]
 }
