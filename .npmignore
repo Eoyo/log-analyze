@@ -1,5 +1,13 @@
 src
-rubbish
 logs
 .vscode
 *.log
+.eslintignore
+.eslintrc.yml
+.prettierrc.yml
+__mock__
+__test__
+.vscode
+src
+jest.config.js
+yarn.lock
