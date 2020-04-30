@@ -28,7 +28,7 @@
   "bin": {
     "logz": "./dist/log.js"
   },
-  "version": "1.0.8",
+  "version": "1.0.9",
   "dependencies": {
     "@types/fs-extra": "^8.0.1",
     "chalk": "^3.0.0",
