@@ -43,7 +43,7 @@ function getAimLogName(filePath: string) {
 async function getGZLogs(gzFileDir: string) {
   if (await fs.pathExists(path.join(gzFileDir, "uploading"))) {
     const p = path.join(gzFileDir, "uploading")
-    const files = await fs.readdir(gzFileDir)
+    const files = await fs.readdir(p)
     return files
       .filter((one) => mindlinkerLogReg.test(one))
       .map((one) => path.join(p, one))
