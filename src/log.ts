@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
 import fs from "fs-extra"
 import readline from "readline"
 import path from "path"
@@ -7,6 +8,7 @@ import Nzh from "nzh"
 import { LogRecord } from "./interface"
 import { combineLogs } from "./methods/combine-logs"
 import { SearchFilters, searchFilters } from "./methods/search-filters"
+import { unCompressTarFile, isTar } from "./files/uncompress"
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -32,9 +34,32 @@ async function readLogFileData(file: string): Promise<LogRecord[]> {
     })
 }
 
+function getFileTimeName(name: string) {
+  const r = name.match(/[0-9]+-[0-9]+-[0-9]+/)
+  return r ? r[0] : ""
+}
+
+// 获取最新的日志文件.
 async function getFilesInDir(dir: string) {
-  const d = await fs.readdir(dir)
-  return d.map((one) => path.join(dir, one))
+  return (
+    (await fs.readdir(dir))
+      // 选择有时间的文件
+      .filter((one) => !!getFileTimeName(one))
+      // 排序
+      .sort((a, b) => {
+        if (a > b) {
+          return 1
+        }
+        if (a === b) {
+          return 0
+        }
+        return -1
+      })
+      // 选择最新的两个
+      .slice(-2)
+      // 合并出最新路径
+      .map((one) => path.join(dir, one))
+  )
 }
 
 async function combineLogFiles(files: string[]) {
@@ -47,8 +72,9 @@ async function combineLogFiles(files: string[]) {
     return combineLogs(acc, b)
   })
 }
-async function readAllLogsFile() {
-  return combineLogFiles(await getFilesInDir(path.join(process.cwd(), "logs")))
+
+async function readAllLogsFile(root: string) {
+  return combineLogFiles(await getFilesInDir(root))
 }
 
 function inputLine(inputHandler: (inputStr: string) => void) {
@@ -66,10 +92,10 @@ function logRecordStr(log: LogRecord): string {
   return message
 }
 
-async function writeLogsRecord(data: LogRecord[]) {
+async function writeLogsRecord(data: LogRecord[], dest: string) {
   const messages = data.map(logRecordStr)
   await fs.writeFile(
-    path.join(process.cwd(), "output.log"),
+    dest,
     `结果: ${Nzh.cn.encodeS(messages.length)} 条日志\n${messages.join("\n")}`
   )
   console.log(`结果: ${Nzh.cn.encodeS(messages.length)} 条日志`)
@@ -107,11 +133,23 @@ function filterLogsRecord({
 }
 
 async function start() {
-  const data = await readAllLogsFile()
+  const [filePath = "logs"] = process.argv.slice(2)
+  const rootPath = path.join(process.cwd(), filePath)
+
+  if (!(await fs.pathExists(rootPath))) {
+    console.error("not exist", rootPath)
+    process.exit()
+  }
+
+  if (await isTar(rootPath)) {
+    await unCompressTarFile(rootPath)
+  }
+  const destPath = path.join(rootPath, "output.log")
+  const data = await readAllLogsFile(rootPath)
   console.log("文件解析完成")
   inputLine((inputStr) => {
     const filters = searchFilters(inputStr)
-    writeLogsRecord(filterLogsRecord({ data, filters }))
+    writeLogsRecord(filterLogsRecord({ data, filters }), destPath)
   })
 }
 

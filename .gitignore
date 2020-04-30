@@ -6,3 +6,4 @@ output.log
 dist
 test.js
 *.log
+un-compressing-temp

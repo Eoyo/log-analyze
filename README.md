@@ -13,6 +13,11 @@ log-analyze 是一个日志分析器, 主要是用于过滤大量的日志, 选�
 安装: `yarn global add log-analyze`
 运行: `logz`
 
+## logz 命令行参数
+
+1. `logz` 默认行为: 选择当前的 ./logs 目录中的日志.
+2. 设置需要解析的目标目录, `logz ./login-logs` 将解析 login-logs 目录下的日志. 然后在目标目录中生成 output.log
+
 ## 基本原理
 
 1. 运行 `logz`, 将开始解析当前目录中 的 `logs` 中的日志.
