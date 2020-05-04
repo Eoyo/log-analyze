@@ -7,10 +7,12 @@ const tempUnCompressFileDir = ".temp"
 const mindlinkerLogReg = /(main\.log|render\.log)\.[0-9]*\.gz/
 
 export async function isTar(filePath: string) {
-  if (path.extname(filePath) === ".tar") {
-    return fs.pathExists(filePath)
-  }
-  return false
+  if (!(path.extname(filePath) === ".tar")) return false
+  const exist = await fs.pathExists(filePath)
+  if (!exist) return false
+  const stat = await fs.stat(filePath)
+  if (!stat.isFile()) return false
+  return true
 }
 
 export async function unCompressTarFile(filePath: string) {
@@ -25,8 +27,7 @@ export async function unCompressTarFile(filePath: string) {
   await compressing.tar.uncompress(filePath, tempDir)
   await fs.remove(filePath)
   await fs.ensureDir(destDir)
-
-  Promise.all(
+  await Promise.all(
     (await getGZLogs(tempDir)).map((one) => {
       return unCompressGZFileToLog(one, destDir, getAimLogName)
     })
