@@ -5,10 +5,16 @@ import readline from "readline"
 import path from "path"
 // @ts-ignore
 import Nzh from "nzh"
+import { debounce } from "throttle-debounce"
 import { LogRecord } from "./interface"
 import { combineLogs } from "./methods/combine-logs"
-import { SearchFilters, searchFilters } from "./methods/search-filters"
+import {
+  SearchFilters,
+  searchFilters,
+  StrFilter,
+} from "./methods/search-filters"
 import { unCompressTarFile, isTar } from "./files/uncompress"
+import { Emitter } from "./utils/emitter"
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -63,10 +69,6 @@ async function getFilesInDir(dir: string) {
 }
 
 async function combineLogFiles(files: string[]) {
-  console.log(
-    "combine logs",
-    files.map((file) => path.basename(file))
-  )
   const fileStr = await Promise.all(files.map(readLogFileData))
   return fileStr.reduce((acc, b) => {
     return combineLogs(acc, b)
@@ -74,7 +76,30 @@ async function combineLogFiles(files: string[]) {
 }
 
 async function readAllLogsFile(root: string) {
-  return combineLogFiles(await getFilesInDir(root))
+  const emitter = new Emitter<{
+    change: []
+    data: [LogRecord[]]
+  }>()
+  const logsFiles = await getFilesInDir(root)
+  console.log(
+    "analyze logs:",
+    logsFiles.map((file) => path.basename(file))
+  )
+  const emitWatchChange = debounce(300, () => emitter.emit("change"))
+  logsFiles.forEach((oneFile) =>
+    fs.watch(oneFile).on("change", () => {
+      emitWatchChange()
+    })
+  )
+  emitter.subscribe("change", () => {
+    combineLogFiles(logsFiles).then((data) => {
+      emitter.emit("data", data)
+    })
+  })
+  combineLogFiles(logsFiles).then((data) => {
+    emitter.emit("data", data)
+  })
+  return emitter
 }
 
 function inputLine(inputHandler: (inputStr: string) => void) {
@@ -145,11 +170,26 @@ async function start() {
     await unCompressTarFile(rootPath)
   }
   const destPath = path.join(rootPath, "output.log")
-  const data = await readAllLogsFile(rootPath)
+  const fileReaderEmitter = await readAllLogsFile(rootPath)
+  const logsAnalyzeEmitter = new Emitter<{ analyze: [] }>()
   console.log("文件解析完成")
+  let filters: SearchFilters<StrFilter> | undefined
+  let data: LogRecord[] | undefined
+
+  // 输入和文件的解析完成都会触发一次文件的解析
   inputLine((inputStr) => {
-    const filters = searchFilters(inputStr)
-    writeLogsRecord(filterLogsRecord({ data, filters }), destPath)
+    filters = searchFilters(inputStr)
+    logsAnalyzeEmitter.emit("analyze")
+  })
+  fileReaderEmitter.onx.data((newLogsData) => {
+    data = newLogsData
+    logsAnalyzeEmitter.emit("analyze")
+  })
+
+  logsAnalyzeEmitter.onx.analyze(() => {
+    if (data && filters) {
+      writeLogsRecord(filterLogsRecord({ data, filters }), destPath)
+    }
   })
 }
 
