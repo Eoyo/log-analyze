@@ -1,7 +1,7 @@
 {
   "scripts": {
     "test": "jest",
-    "work": "tsc -w",
+    "work": "tsc -w -p tsconfig.build.json",
     "start": "node dist/log.js",
     "lint": "eslint --ext .js,.ts ./",
     "lint-fix": "eslint --ext .js,.ts ./ --fix"
@@ -26,7 +26,7 @@
   },
   "name": "log-analyze",
   "bin": {
-    "logz": "./dist/log.js"
+    "logz": "./bin/logz.js"
   },
   "version": "1.1.2",
   "dependencies": {

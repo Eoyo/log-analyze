@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /* eslint-disable no-console */
 import fs from "fs-extra"
 import readline from "readline"
@@ -15,6 +14,7 @@ import {
 } from "./methods/search-filters"
 import { unCompressTarFile, isTar } from "./files/uncompress"
 import { Emitter } from "./utils/emitter"
+import { codeOpen } from "./utils/code-open"
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -172,7 +172,9 @@ async function start() {
   const destPath = path.join(rootPath, "output.log")
   const fileReaderEmitter = await readAllLogsFile(rootPath)
   const logsAnalyzeEmitter = new Emitter<{ analyze: [] }>()
+  await fs.ensureFile(destPath)
   console.log("文件解析完成")
+  codeOpen(destPath)
   let filters: SearchFilters<StrFilter> | undefined
   let data: LogRecord[] | undefined
 
