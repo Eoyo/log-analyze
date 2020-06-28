@@ -8,6 +8,7 @@ describe("合并日志", () => {
       level: "1",
       message: "",
       isMark: false,
+      from: "R",
     }
   }
   it("排序日志", () => {

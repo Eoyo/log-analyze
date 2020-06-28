@@ -5,8 +5,7 @@ import path from "path"
 // @ts-ignore
 import Nzh from "nzh"
 import { debounce } from "throttle-debounce"
-import { LogRecord } from "./interface"
-import { combineLogs } from "./methods/combine-logs"
+import { LogRecord, LOG_FROM } from "./interface"
 import {
   SearchFilters,
   searchFilters,
@@ -21,23 +20,26 @@ const rl = readline.createInterface({
   output: process.stdout,
 })
 
-async function readLogFileData(file: string): Promise<LogRecord[]> {
-  const data = await fs.readFile(file)
-  const logs = data
-    .toString()
-    .split(path.basename(file).split(".")[0] || `${Date.now()}`)
-
-  return logs
+async function readLogFileData(filePath: string): Promise<LogRecord[]> {
+  const data = await fs.readFile(filePath)
+  const fileTime = path.basename(filePath).split(".")[0] || `${Date.now()}`
+  const logs = data.toString().split(fileTime)
+  // console.log(fileTime)
+  const from: LOG_FROM = filePath.includes("main") ? "M" : "R"
+  const fileData = logs
     .filter((one) => !!one)
     .map((one) => one.trim())
     .map((one) => {
+      // console.log(one.slice(0, 12))
       return {
         time: one.slice(0, 12),
         level: one.slice(13, 14),
         message: one.slice(15),
         isMark: false,
+        from,
       }
     })
+  return fileData
 }
 
 function getFileTimeName(name: string) {
@@ -70,9 +72,11 @@ async function getFilesInDir(dir: string) {
 
 async function combineLogFiles(files: string[]) {
   const fileStr = await Promise.all(files.map(readLogFileData))
-  return fileStr.reduce((acc, b) => {
-    return combineLogs(acc, b)
+  let result: LogRecord[] = []
+  fileStr.forEach((one) => {
+    result = result.concat(one)
   })
+  return result
 }
 
 async function readAllLogsFile(root: string) {
@@ -110,7 +114,7 @@ function inputLine(inputHandler: (inputStr: string) => void) {
 }
 
 function logRecordStr(log: LogRecord): string {
-  const message = `${log.time} ${log.level} ${log.message}`
+  const message = `${log.time} ${log.from} ${log.level} ${log.message}`
   if (log.isMark) {
     return `\n<<<\n${message}\n>>>\n`
   }
@@ -136,7 +140,11 @@ function filterLogsRecord({
   let d = data
 
   if (filters.level.hasReg) {
-    d = d.filter((one) => filters.level(one.level))
+    d = d.filter((one) =>
+      one.from
+        ? filters.level(one.from) || filters.level(one.level)
+        : filters.level(one.level)
+    )
   }
 
   if (filters.content.hasReg) {
@@ -154,7 +162,15 @@ function filterLogsRecord({
       }
     })
   }
-  return d
+  return d.sort((a, b) => {
+    if (a.time < b.time) {
+      return -1
+    }
+    if (a.time > b.time) {
+      return 1
+    }
+    return 0
+  })
 }
 
 async function start() {
