@@ -43,7 +43,7 @@ async function readLogFileData(filePath: string): Promise<LogRecord[]> {
 }
 
 function getFileTimeName(name: string) {
-  const r = name.match(/[0-9]+-[0-9]+-[0-9]+/)
+  const r = name.match(/^[0-9]+-[0-9]+-[0-9]+/)
   return r ? r[0] : ""
 }
 
