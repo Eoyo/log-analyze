@@ -1,102 +1,160 @@
-import chalk from "chalk"
+import { LogRecord } from "../interface"
 
-export type SearchFilters<T = StrFilter> = {
-  time: T
-  level: T
-  content: T
-  mark: T
+enum FilterType {
+  time = "time",
+  content = "content",
+  tag = "tag",
 }
 
-export type StrFilter = { (str: string): boolean; hasReg: boolean }
-
-function filtersLogger(originStr: string, filters: SearchFilters<string[]>) {
-  console.log(chalk.blue("filters: "), chalk.green(originStr))
-  const keys = Object.keys(filters)
-  keys.forEach((oneKey) => {
-    console.log(`${chalk.blueBright(oneKey)}\t`, (filters as any)[oneKey])
-  })
+type FiltersJSON = {
+  type: FilterType
+  reg: RegExp
+  isNot: boolean
+  isMark: boolean
 }
 
-function stringArrayFilter(str?: string): string[] {
-  if (str) {
-    return str
-      .split(" ")
-      .map((one) => one.trim())
-      .filter((one) => !!one)
-  }
-  return []
-}
-
-function createIgnoreStrMatch(str: string) {
-  return new RegExp(str.replace("_", "[_ ]"), "i")
-}
-
-function allRegMatchStr(reg: RegExp[]): StrFilter {
-  return Object.assign(
-    (str: string) => {
-      const testResult = !reg.some((oneReg) => {
-        return !oneReg.test(str)
-      })
-      // console.log("testing", str, testResult);
-      return testResult
-    },
-    {
-      hasReg: reg.length > 0,
-    }
-  )
-}
-
-/**
- * 通过 字符串 构建搜索的过滤器
- */
-export function searchFilters(searchStr: string): SearchFilters<StrFilter> {
-  const commandRegArray = searchStr.match(/`.*`/)
-  const filters: SearchFilters<string[]> = {
-    time: [],
-    level: [],
-    content: [],
-    mark: [],
-  }
-  let commandStr = ""
-  if (commandRegArray) {
-    const t1 = commandRegArray[0]
-    commandStr = t1
-    const t3 = t1.slice(1, -1).split(" ")
-    t3.forEach((one) => {
-      if (one) {
-        if (one.match(/[0-9]/)) {
-          filters.time.push(one)
-        } else {
-          filters.level.push(one)
+function getStrFilterType(str: string, lastState = ""): FiltersJSON {
+  const first = str[0]
+  switch (first) {
+    case "#":
+      return {
+        type: FilterType.tag,
+        reg: new RegExp(str.slice(1), "i"),
+        isNot: false,
+        isMark: false,
+      }
+    case "@":
+      return {
+        type: FilterType.time,
+        reg: new RegExp(str.slice(1), "i"),
+        isNot: false,
+        isMark: false,
+      }
+    case "\\":
+      return {
+        type: FilterType.content,
+        reg: new RegExp(str.slice(1), "i"),
+        isNot: false,
+        isMark: false,
+      }
+    case ">":
+      if (lastState.includes(">")) {
+        return {
+          type: FilterType.content,
+          reg: new RegExp(str, "i"),
+          isNot: false,
+          isMark: false,
         }
+      }
+      return {
+        ...getStrFilterType(str.slice(1), `${lastState}>`),
+        isMark: true,
+      }
+    case "!":
+      if (lastState.includes("!")) {
+        return {
+          type: FilterType.content,
+          reg: new RegExp(str, "i"),
+          isNot: false,
+          isMark: false,
+        }
+      }
+      return {
+        ...getStrFilterType(str.slice(1), `${lastState}!`),
+        isNot: true,
+      }
+    default:
+      return {
+        type: FilterType.content,
+        reg: new RegExp(str.slice(1), "i"),
+        isNot: false,
+        isMark: false,
+      }
+  }
+}
+
+export class SearchFilter {
+  private filters: FiltersJSON[] = []
+  private markFilters: FiltersJSON[] = []
+
+  constructor(filterStr: string) {
+    filterStr
+      .split(",")
+      .map((one) => getStrFilterType(one))
+      .forEach((one) => {
+        if (one.isMark) {
+          this.markFilters.push(one)
+        } else {
+          this.filters.push(one)
+        }
+      })
+  }
+
+  private someMatch(one: LogRecord, filters: FiltersJSON[]) {
+    return filters.some(({ type, reg, isNot }) => {
+      switch (type) {
+        case FilterType.time:
+          if (isNot) {
+            return !reg.test(one.time)
+          }
+          return reg.test(one.time)
+        case FilterType.content:
+          if (isNot) {
+            return !reg.test(one.message)
+          }
+          return reg.test(one.message)
+        case FilterType.tag:
+          if (isNot) {
+            return !reg.test(one.level) && !reg.test(one.from || "")
+          }
+          return reg.test(one.level) || reg.test(one.from || "")
+        default:
+          return false
       }
     })
   }
-  const t2 = commandStr ? searchStr.replace(commandStr, "") : searchStr
-  const [contentStr, markStr] = t2.split(">>>").map((one) => one.trim())
-  const contentStrArray = stringArrayFilter(contentStr)
-  const markStrArray = stringArrayFilter(markStr)
-  if (contentStrArray) {
-    filters.content = contentStrArray
-  }
-  if (markStrArray) {
-    filters.mark = markStrArray
-  }
 
-  const { level, mark, time, content } = filters
-  filtersLogger(searchStr, filters)
-
-  const [levelReg, markReg, timeReg, contentReg] = [level, mark, time, content]
-    .map((one) => {
-      return one.map(createIgnoreStrMatch)
+  private allMatch(one: LogRecord, filters: FiltersJSON[]) {
+    return !filters.some(({ type, reg, isNot }) => {
+      switch (type) {
+        case FilterType.time:
+          if (isNot) {
+            return reg.test(one.time)
+          }
+          return !reg.test(one.time)
+        case FilterType.content:
+          if (isNot) {
+            return reg.test(one.message)
+          }
+          return !reg.test(one.message)
+        case FilterType.tag:
+          if (isNot) {
+            return reg.test(one.level) || reg.test(one.from || "")
+          }
+          return !reg.test(one.level) && !reg.test(one.from || "")
+        default:
+          return false
+      }
     })
-    .map(allRegMatchStr)
-
-  const filtersReg = {
-    level: levelReg,
-    time: timeReg,
-    mark: markReg,
-    content: contentReg,
   }
-  return filtersReg
+
+  filterLogs(logs: LogRecord[]): LogRecord[] {
+    return logs
+      .filter((one) => this.allMatch(one, this.filters))
+      .map((one) => {
+        if (this.someMatch(one, this.markFilters)) {
+          return { ...one, isMark: true }
+        }
+        return one
+      })
+      .sort((a, b) => {
+        if (a.time < b.time) {
+          return -1
+        }
+        if (a.time > b.time) {
+          return 1
+        }
+        return 0
+      })
+  }
 }

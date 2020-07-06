@@ -2,15 +2,9 @@
 import fs from "fs-extra"
 import readline from "readline"
 import path from "path"
-// @ts-ignore
-import Nzh from "nzh"
 import { debounce } from "throttle-debounce"
 import { LogRecord, LOG_FROM } from "./interface"
-import {
-  SearchFilters,
-  searchFilters,
-  StrFilter,
-} from "./methods/search-filters"
+import { SearchFilter } from "./methods/search-filters"
 import { unCompressTarFile, isTar } from "./files/uncompress"
 import { Emitter } from "./utils/emitter"
 import { codeOpen } from "./utils/code-open"
@@ -121,56 +115,18 @@ function logRecordStr(log: LogRecord): string {
   return message
 }
 
-async function writeLogsRecord(data: LogRecord[], dest: string) {
-  const messages = data.map(logRecordStr)
-  await fs.writeFile(
-    dest,
-    `结果: ${Nzh.cn.encodeS(messages.length)} 条日志\n${messages.join("\n")}`
-  )
-  console.log(`结果: ${Nzh.cn.encodeS(messages.length)} 条日志`)
+function markCount(logs: LogRecord[]) {
+  let count = 0
+  logs.forEach((one) => {
+    if (one.isMark) count += 1
+  })
+  return count
 }
 
-function filterLogsRecord({
-  data,
-  filters,
-}: {
-  data: LogRecord[]
-  filters: SearchFilters
-}): LogRecord[] {
-  let d = data
-
-  if (filters.level.hasReg) {
-    d = d.filter((one) =>
-      one.from
-        ? filters.level(one.from) || filters.level(one.level)
-        : filters.level(one.level)
-    )
-  }
-
-  if (filters.content.hasReg) {
-    d = d.filter((one) => filters.content(one.message))
-  }
-  if (filters.time.hasReg) {
-    d = d.filter((one) => filters.time(one.time))
-  }
-
-  if (filters.mark.hasReg) {
-    d = d.map((one) => {
-      return {
-        ...one,
-        isMark: filters.mark(one.message),
-      }
-    })
-  }
-  return d.sort((a, b) => {
-    if (a.time < b.time) {
-      return -1
-    }
-    if (a.time > b.time) {
-      return 1
-    }
-    return 0
-  })
+function writeLogsRecord(data: LogRecord[], dest: string) {
+  const messages = data.map(logRecordStr)
+  fs.writeFile(dest, `结果: ${messages.length} 条日志\n${messages.join("\n")}`)
+  return messages
 }
 
 async function start() {
@@ -187,26 +143,26 @@ async function start() {
   }
   const destPath = path.join(rootPath, "output.log")
   const fileReaderEmitter = await readAllLogsFile(rootPath)
-  const logsAnalyzeEmitter = new Emitter<{ analyze: [] }>()
   await fs.ensureFile(destPath)
   console.log("文件解析完成")
   codeOpen(destPath)
-  let filters: SearchFilters<StrFilter> | undefined
+  let filters: SearchFilter
   let data: LogRecord[] | undefined
 
   // 输入和文件的解析完成都会触发一次文件的解析
-  inputLine((inputStr) => {
-    filters = searchFilters(inputStr)
-    logsAnalyzeEmitter.emit("analyze")
+  inputLine(async (inputStr) => {
+    if (data) {
+      filters = new SearchFilter(inputStr)
+      const messages = writeLogsRecord(filters.filterLogs(data), destPath)
+      console.log(
+        `结果: ${messages.length} 条日志, 标记了 ${markCount(data)} 条日志`
+      )
+    }
   })
-  fileReaderEmitter.onx.data((newLogsData) => {
+  fileReaderEmitter.onx.data(async (newLogsData) => {
     data = newLogsData
-    logsAnalyzeEmitter.emit("analyze")
-  })
-
-  logsAnalyzeEmitter.onx.analyze(() => {
-    if (data && filters) {
-      writeLogsRecord(filterLogsRecord({ data, filters }), destPath)
+    if (filters && data) {
+      writeLogsRecord(filters.filterLogs(data), destPath)
     }
   })
 }
