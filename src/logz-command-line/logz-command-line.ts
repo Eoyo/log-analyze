@@ -9,7 +9,7 @@ const rl = readline.createInterface({
 })
 
 function getRootPath() {
-  const [filePath = "logs"] = process.argv.slice(2)
+  const [filePath = "./"] = process.argv.slice(2)
   const rootPath = path.join(process.cwd(), filePath)
   return rootPath
 }
