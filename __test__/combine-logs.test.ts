@@ -1,5 +1,5 @@
-import { combineLogs } from "../src/methods/combine-logs"
 import { LogRecord } from "../src/interface"
+import { combineLogs } from "../src/logs-record/combine-logs-record"
 
 describe("合并日志", () => {
   function createLog(time: string): LogRecord {
@@ -8,6 +8,7 @@ describe("合并日志", () => {
       level: "1",
       message: "",
       isMark: false,
+      tag: "good",
       from: "R",
     }
   }

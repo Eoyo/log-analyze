@@ -1,9 +1,10 @@
-import { LogRecord } from "../interface"
+import { LogRecord, LogFilter } from "../interface"
 
 enum FilterType {
   time = "time",
   content = "content",
   tag = "tag",
+  levelFrom = "levelFrom",
 }
 
 type FiltersJSON = {
@@ -13,12 +14,19 @@ type FiltersJSON = {
   isMark: boolean
 }
 
-function getStrFilterType(str: string, lastState = ""): FiltersJSON {
+function buildFilterJSON(str: string, lastState = ""): FiltersJSON {
   const first = str[0]
   switch (first) {
     case "#":
       return {
         type: FilterType.tag,
+        reg: new RegExp(str.slice(1), "i"),
+        isNot: false,
+        isMark: false,
+      }
+    case "$":
+      return {
+        type: FilterType.levelFrom,
         reg: new RegExp(str.slice(1), "i"),
         isNot: false,
         isMark: false,
@@ -47,7 +55,7 @@ function getStrFilterType(str: string, lastState = ""): FiltersJSON {
         }
       }
       return {
-        ...getStrFilterType(str.slice(1), `${lastState}>`),
+        ...buildFilterJSON(str.slice(1), `${lastState}>`),
         isMark: true,
       }
     case "!":
@@ -60,7 +68,7 @@ function getStrFilterType(str: string, lastState = ""): FiltersJSON {
         }
       }
       return {
-        ...getStrFilterType(str.slice(1), `${lastState}!`),
+        ...buildFilterJSON(str.slice(1), `${lastState}!`),
         isNot: true,
       }
     default:
@@ -73,14 +81,14 @@ function getStrFilterType(str: string, lastState = ""): FiltersJSON {
   }
 }
 
-export class SearchFilter {
+export class TagCommandFilter implements LogFilter {
   private filters: FiltersJSON[] = []
   private markFilters: FiltersJSON[] = []
 
   constructor(filterStr: string) {
     filterStr
       .split(",")
-      .map((one) => getStrFilterType(one))
+      .map((one) => buildFilterJSON(one))
       .forEach((one) => {
         if (one.isMark) {
           this.markFilters.push(one)
@@ -93,6 +101,11 @@ export class SearchFilter {
   private someMatch(one: LogRecord, filters: FiltersJSON[]) {
     return filters.some(({ type, reg, isNot }) => {
       switch (type) {
+        case FilterType.tag:
+          if (isNot) {
+            return !reg.test(one.tag)
+          }
+          return reg.test(one.tag)
         case FilterType.time:
           if (isNot) {
             return !reg.test(one.time)
@@ -103,7 +116,7 @@ export class SearchFilter {
             return !reg.test(one.message)
           }
           return reg.test(one.message)
-        case FilterType.tag:
+        case FilterType.levelFrom:
           if (isNot) {
             return !reg.test(one.level) && !reg.test(one.from || "")
           }
@@ -117,6 +130,11 @@ export class SearchFilter {
   private allMatch(one: LogRecord, filters: FiltersJSON[]) {
     return !filters.some(({ type, reg, isNot }) => {
       switch (type) {
+        case FilterType.tag:
+          if (isNot) {
+            return reg.test(one.tag)
+          }
+          return !reg.test(one.tag)
         case FilterType.time:
           if (isNot) {
             return reg.test(one.time)
@@ -127,7 +145,7 @@ export class SearchFilter {
             return reg.test(one.message)
           }
           return !reg.test(one.message)
-        case FilterType.tag:
+        case FilterType.levelFrom:
           if (isNot) {
             return reg.test(one.level) || reg.test(one.from || "")
           }
