@@ -14,6 +14,16 @@ type FiltersJSON = {
   isMark: boolean
 }
 
+function sortByTime(a: LogRecord, b: LogRecord) {
+  if (a.time < b.time) {
+    return -1
+  }
+  if (a.time > b.time) {
+    return 1
+  }
+  return 0
+}
+
 function buildFilterJSON(str: string, lastState = ""): FiltersJSON {
   const first = str[0]
   switch (first) {
@@ -84,22 +94,29 @@ function buildFilterJSON(str: string, lastState = ""): FiltersJSON {
 export class TagCommandFilter implements LogFilter {
   private filters: FiltersJSON[] = []
   private markFilters: FiltersJSON[] = []
-
+  private subTagCommandFilter: TagCommandFilter[] = []
   constructor(filterStr: string) {
-    filterStr
-      .split(",")
-      .map((one) => buildFilterJSON(one))
-      .forEach((one) => {
-        if (one.isMark) {
-          this.markFilters.push(one)
-        } else {
-          this.filters.push(one)
-        }
-      })
+    const subFilterStrArray = filterStr.split(";")
+    if (subFilterStrArray.length > 1) {
+      this.subTagCommandFilter = subFilterStrArray.map(
+        (oneSubStr) => new TagCommandFilter(oneSubStr)
+      )
+    } else {
+      filterStr
+        .split(",")
+        .map((one) => buildFilterJSON(one))
+        .forEach((one) => {
+          if (one.isMark) {
+            this.markFilters.push(one)
+          } else {
+            this.filters.push(one)
+          }
+        })
+    }
   }
 
-  private someMatch(one: LogRecord, filters: FiltersJSON[]) {
-    return filters.some(({ type, reg, isNot }) => {
+  private markMatch(one: LogRecord) {
+    return this.markFilters.some(({ type, reg, isNot }) => {
       switch (type) {
         case FilterType.tag:
           if (isNot) {
@@ -127,8 +144,8 @@ export class TagCommandFilter implements LogFilter {
     })
   }
 
-  private allMatch(one: LogRecord, filters: FiltersJSON[]) {
-    return !filters.some(({ type, reg, isNot }) => {
+  private filterMatch(one: LogRecord) {
+    return !this.filters.some(({ type, reg, isNot }) => {
       switch (type) {
         case FilterType.tag:
           if (isNot) {
@@ -156,23 +173,42 @@ export class TagCommandFilter implements LogFilter {
     })
   }
 
-  filterLogs(logs: LogRecord[]): LogRecord[] {
+  private filterByFilters(logs: LogRecord[]): LogRecord[] {
     return logs
-      .filter((one) => this.allMatch(one, this.filters))
+      .filter((one) => this.filterMatch(one))
       .map((one) => {
-        if (this.someMatch(one, this.markFilters)) {
+        if (this.markMatch(one)) {
           return { ...one, isMark: true }
         }
         return one
       })
-      .sort((a, b) => {
-        if (a.time < b.time) {
-          return -1
+      .sort(sortByTime)
+  }
+
+  private filterBySubFilters(logs: LogRecord[]): LogRecord[] {
+    return logs
+      .filter((one) => this.someSubFiltersMatch(one))
+      .map((one) => {
+        if (this.someSubFiltersMarkMatch(one)) {
+          return { ...one, isMark: true }
         }
-        if (a.time > b.time) {
-          return 1
-        }
-        return 0
+        return one
       })
+      .sort(sortByTime)
+  }
+
+  private someSubFiltersMatch(log: LogRecord): boolean {
+    return this.subTagCommandFilter.some((filter) => filter.filterMatch(log))
+  }
+
+  private someSubFiltersMarkMatch(log: LogRecord): boolean {
+    return this.subTagCommandFilter.some((filter) => filter.markMatch(log))
+  }
+
+  filterLogs(logs: LogRecord[]): LogRecord[] {
+    if (this.subTagCommandFilter.length > 1) {
+      return this.filterBySubFilters(logs)
+    }
+    return this.filterByFilters(logs)
   }
 }
