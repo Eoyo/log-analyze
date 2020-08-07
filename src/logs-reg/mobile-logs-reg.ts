@@ -1,13 +1,13 @@
 import { LogRecord, LOG_FROM, LogReg } from "../interface"
 
-// 时间, 渲染进程/主进程 日志等级 日志的标签 日志的数据内容
+// 等到 移动端的日志优化了后考虑适配一下格式
 const logReg = /^([0-9:.]*) ([WIDE]) \[([\w:.]*)\] (.*)$/
 
 function sliceLog(logStr: string) {
   return logStr
 }
 
-export class MindlinkerLogReg implements LogReg {
+export class MobileLogsReg implements LogReg {
   static canMatch(logStr: string) {
     return logReg.test(logStr)
   }

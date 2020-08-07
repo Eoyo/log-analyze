@@ -1,13 +1,8 @@
 import { LogRecord, LOG_FROM, LogReg } from "../interface"
 
-// 时间, 渲染进程/主进程 日志等级 日志的标签 日志的数据内容
-const logReg = /^([0-9:.]*) ([WIDE]) \[([\w:.]*)\] (.*)$/
+const logReg = /^\[([0-9:- ]*) tid=[0-9]* ([WIDE]) ([\w:.]*)\] (.*)$/
 
-function sliceLog(logStr: string) {
-  return logStr
-}
-
-export class MindlinkerLogReg implements LogReg {
+export class MobileLogsReg implements LogReg {
   static canMatch(logStr: string) {
     return logReg.test(logStr)
   }
@@ -36,9 +31,7 @@ export class MindlinkerLogReg implements LogReg {
 
   logRecordToString(log: LogRecord): string {
     const message = log.level
-      ? `${log.time} ${log.from} ${log.level} [${log.tag}] ${sliceLog(
-          log.message
-        )}`
+      ? `${log.time} ${log.from} ${log.level} [${log.tag}] ${log.message}`
       : `Bad Log >>>>>> ${log.message}`
     if (log.isMark) {
       return `\n<<<\n${message}\n>>>\n`
