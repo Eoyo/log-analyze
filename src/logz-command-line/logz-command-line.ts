@@ -20,7 +20,11 @@ export class LogzCommandLine {
     // eslint-disable-next-line no-console
     console.log("\n请输入关键字搜索, 回车确定:")
     rl.on("line", (input) => {
-      this.logsFile.filterLogsToDest(input)
+      if (input === "@clear") {
+        this.logsFile.clear()
+      } else {
+        this.logsFile.filterLogsToDest(input)
+      }
     })
   }
 

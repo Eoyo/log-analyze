@@ -59,6 +59,12 @@ export class LogsFile {
     return this.filter.filterLogs(this.allLogs)
   }
 
+  async clear() {
+    return Promise.all(
+      this.logsFiles.map((oneFile) => fs.writeFile(oneFile, ""))
+    )
+  }
+
   async filterLogsToDest(filterString?: string) {
     const filteredLogs = this.getFilteredLogs(filterString)
     return writeLogsRecord(filteredLogs, this.logsReg, this.destFile)
