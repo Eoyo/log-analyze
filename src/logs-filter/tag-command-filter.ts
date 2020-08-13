@@ -1,4 +1,5 @@
 import { LogRecord, LogFilter } from "../interface"
+import { createArrayTimeRegStr } from "./time-range"
 
 enum FilterType {
   time = "time",
@@ -44,7 +45,7 @@ function buildFilterJSON(str: string, lastState = ""): FiltersJSON {
     case "@":
       return {
         type: FilterType.time,
-        reg: new RegExp(str.slice(1), "i"),
+        reg: new RegExp(createArrayTimeRegStr(str.slice(1)), "i"),
         isNot: false,
         isMark: false,
       }
