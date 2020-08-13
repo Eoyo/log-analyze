@@ -28,7 +28,7 @@
   "bin": {
     "logz": "./bin/logz.js"
   },
-  "version": "1.2.0",
+  "version": "1.2.2",
   "dependencies": {
     "@types/fs-extra": "^8.0.1",
     "@types/throttle-debounce": "^2.1.0",
