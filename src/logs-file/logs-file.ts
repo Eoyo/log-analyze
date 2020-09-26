@@ -65,6 +65,14 @@ export class LogsFile {
     )
   }
 
+  async addMark(str: string) {
+    return Promise.all(
+      this.logsFiles.map((oneFile) =>
+        fs.writeFile(oneFile, `\n\n@@@@${str}\n\n`, { flag: "a" })
+      )
+    )
+  }
+
   async filterLogsToDest(filterString?: string) {
     const filteredLogs = this.getFilteredLogs(filterString)
     return writeLogsRecord(filteredLogs, this.logsReg, this.destFile)

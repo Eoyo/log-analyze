@@ -2,6 +2,7 @@ import path from "path"
 import readline from "readline"
 import { LogsFile } from "../logs-file/logs-file"
 import { codeOpen } from "../utils/code-open"
+import { commandFor } from "./cammd-for"
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -20,10 +21,17 @@ export class LogzCommandLine {
     // eslint-disable-next-line no-console
     console.log("\n请输入关键字搜索, 回车确定:")
     rl.on("line", (input) => {
-      if (input === "@clear") {
-        this.logsFile.clear()
-      } else {
-        this.logsFile.filterLogsToDest(input)
+      const { cmd, data } = commandFor(input)
+      switch (cmd) {
+        case "mark":
+          this.logsFile.addMark(data)
+          break
+        case "clear":
+          this.logsFile.clear()
+          break
+        default:
+          this.logsFile.filterLogsToDest(input)
+          break
       }
     })
   }
