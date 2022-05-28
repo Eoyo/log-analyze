@@ -26,7 +26,10 @@ export async function unCompressTarFile(filePath: string) {
   const tempDir = path.join(tempUnCompressFileDir, path.basename(filePath))
   await compressing.tar.uncompress(filePath, tempDir)
   await fs.remove(filePath)
-  await fs.ensureDir(destDir)
+  await /* TODO: JSFIX could not patch the breaking change:
+  Creating a directory with fs-extra no longer returns the path 
+  Suggested fix: The returned promise no longer includes the path of the new directory */
+  fs.ensureDir(destDir)
   await Promise.all(
     (await getGZLogs(tempDir)).map((one) => {
       return unCompressGZFileToLog(one, destDir, getAimLogName)
