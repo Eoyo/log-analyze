@@ -35,7 +35,7 @@
     "chalk": "^3.0.0",
     "compressing": "^1.5.1",
     "fs-extra": "^8.1.0",
-    "moment": "^2.24.0",
+    "moment": "^2.29.4",
     "nzh": "^1.0.4",
     "throttle-debounce": "^2.1.0"
   },
